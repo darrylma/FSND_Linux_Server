@@ -139,7 +139,9 @@ Configure New Virtual Host
 	CustomLog ${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
 
-3. Type "sudo a2ensite FlaskApp" to enable virtual host
+3. Type "sudo a2dissite 000-default.conf" to disable default 
+4. Type "sudo a2ensite FlaskApp" to enable virtual host
+5. Type "sudo service apache2 reload"
 
 Create .wsgi File
 -----------------------------------------
@@ -153,7 +155,6 @@ Create .wsgi File
 	sys.path.insert(0,"/var/www/FlaskApp/")
 
 	from FlaskApp import app as application
-	application.secret_key = 'super_secret_key'
 
 3. File structure should now be as such:
 	|--------FlaskApp
