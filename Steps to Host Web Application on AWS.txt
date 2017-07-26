@@ -1,0 +1,171 @@
+STEPS TO SETUP AWS SERVER
+Download Default Private Key and Generate Keys
+-----------------------------------------
+1. Download default private key from Lightsail:
+	a. Navigate to server landing page 
+	b. At bottom of page should be the phrase "You can download your default private key from the Account page." Click "Account page"
+	c. Select "SSH keys" tab
+	d. "Download" key into ~/.ssh folder on local machine and rename to "udacitykey.pem" 
+
+Login as ubuntu and Create User
+-----------------------------------------
+1. On your local machine, you should be able to login to your lightsail server as ubuntu by typing in "ssh -i ~/.ssh/udacitykey.pem ubuntu@52.221.179.112"
+
+Update all packages
+-----------------------------------------
+1. On virtual machine, type "sudo apt-get update" to update packages
+2. On virtual machine, type "sudo apt-get upgrade" to install updated packages
+
+Change SSH port from 22 to 2200
+-----------------------------------------
+1. Type "sudo nano /etc/ssh/sshd_config"  to edit sshd_config file
+2. Change "Port 22" to "Port 2200", save and quit
+3. Type "sudo service ssh restart" to restart ssh service
+4. Go to the Lightsail server landing page, click on "Networking" tab
+5. Add Custom TCP port with Port range "2200"
+6. Ycou should be able to login to your lightsail server as grader by typing in "ssh -i ~/.ssh/udacitykey.pem ubuntu@52.221.179.112 -p 2200"
+
+Configure Uncomplicated Firewall (UFW)
+-----------------------------------------
+1. Type following commands:
+	a. sudo ufw default deny incoming
+	b. sudo ufw default allow outgoing
+	c. sudo ufw allow 2200/tcp
+	d. sudo ufw allow www
+	e. sudo ufw allow ntp
+	f. sudo ufw show added
+	g. sudo ufw enable
+
+Configure local time zone
+-----------------------------------------
+1. "sudo dpkg-reconfigure tzdata" 
+2. Select your timezone
+
+Install Apache and mod-wsgi package
+-----------------------------------------
+1. "sudo apt-get install apache2" to install apache2
+2. "sudo apt-get install libapache2-mod-wsgi" to install mod-wsgi package
+
+Install Flask and Other Packages
+-----------------------------------------
+1. Type following commands to install flask and other packages:
+	a. sudo apt-get install python-psycopg2 python-flask
+	b. sudo apt-get install python-sqlalchemy python-pip
+	c. sudo pip install oauth2client
+	d. sudo pip install requests
+	e. sudo pip install httplib2
+	f. sudo pip install flask-seasurf
+	g. sudo apt-get install git
+	h. sudo pip install selenium
+	i. sudo pip install mechanize
+
+Clone Catalog Repository and Make Changes to Catalog Files
+-----------------------------------------
+1. Type "cd /var/www" to move to directory
+2. Create new directory by typing "sudo mkdir FlaskApp"
+3. Move inside directory using "cd FlaskApp"
+4. Clone catalog repository by typing "sudo git clone https://github.com/darrylma/Udacity_Catalog.git"
+5. Move repository to a inner FlaskApp directory "sudo mv ./Udacity_Catalog ./FlaskApp"
+6. Move to the inner FlaskApp directory using "cd FlaskApp"
+7. Rename main.py to __init__.py by typing "sudo mv main.py __init__.py"
+8. Comment out line "app.run(host='0.0.0.0', port=8000)" in __init.py__
+
+Configure New Virtual Host
+-----------------------------------------
+1. Create FlaskApp.conf by typing "sudo nano /etc/apache2/sites-available/FlaskApp.conf"
+2. Add following code:
+
+<VirtualHost *:80>
+	ServerName http://ec2-52-221-179-112.ap-southeast-1.compute.amazonaws.com/
+	ServerAdmin darrylma85@gmail.com
+	WSGIScriptAlias / /var/www/FlaskApp/flaskapp.wsgi
+	<Directory /var/www/FlaskApp/FlaskApp/>
+		Order allow,deny
+		Allow from all
+	</Directory>
+	Alias /static /var/www/FlaskApp/FlaskApp/static
+	<Directory /var/www/FlaskApp/FlaskApp/static/>
+		Order allow,deny
+		Allow from all
+	</Directory>
+	ErrorLog ${APACHE_LOG_DIR}/error.log
+	LogLevel warn
+	CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+OR
+
+<VirtualHost *:80>
+	ServerName 52.221.179.112
+	ServerAdmin darrylma85@gmail.com
+	WSGIScriptAlias / /var/www/FlaskApp/flaskapp.wsgi
+	<Directory /var/www/FlaskApp/FlaskApp/>
+		Order allow,deny
+		Allow from all
+	</Directory>
+	Alias /static /var/www/FlaskApp/FlaskApp/static
+	<Directory /var/www/FlaskApp/FlaskApp/static/>
+		Order allow,deny
+		Allow from all
+	</Directory>
+	ErrorLog ${APACHE_LOG_DIR}/error.log
+	LogLevel warn
+	CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+3. Type "sudo a2dissite 000-default.conf" to disable default 
+4. Type "sudo a2ensite FlaskApp" to enable virtual host
+5. Type "sudo service apache2 reload"
+
+Create .wsgi File
+-----------------------------------------
+1. Create the .wsgi file under /var/www/FlaskApp using "sudo nano flaskapp.wsgi"
+2. Add the following code
+
+	#!/usr/bin/python
+	import sys
+	import logging
+	logging.basicConfig(stream=sys.stderr)
+	sys.path.insert(0,"/var/www/FlaskApp/")
+
+	from FlaskApp import app as application
+	application.secret_key = 'super_secret_key'
+
+3. File structure should now be as such:
+	|--------FlaskApp
+	|----------------FlaskApp
+	|-----------------------static
+	|-----------------------templates
+	|-----------------------__init__.py
+	|----------------flaskapp.wsgi
+
+Restart Apache Server
+-----------------------------------------
+1. Restart Apache using "sudo service apache2 restart"
+
+
+Install Chrome (optional)
+-----------------------------------------
+1. sudo apt-get install -y openjdk-8-jre-headless xvfb libxi6 libgconf-2-4
+2. wget -N https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -P ~/
+3. sudo dpkg -i --force-depends ~/google-chrome-stable_current_amd64.deb
+4. sudo apt-get -f install -y
+5. sudo dpkg -i --force-depends ~/google-chrome-stable_current_amd64.deb
+
+
+Install Chromedriver (optional)
+-----------------------------------------
+1. sudo apt-get install unzip
+2. sudo wget -N http://chromedriver.storage.googleapis.com/2.26/chromedriver_linux64.zip
+3. sudo unzip chromedriver_linux64.zip
+4. sudo chmod +x chromedriver
+
+5. sudo mv -f chromedriver /usr/local/share/chromedriver
+6. sudo ln -s /usr/local/share/chromedriver /usr/local/bin/chromedriver
+7. sudo ln -s /usr/local/share/chromedriver /usr/bin/chromedriver
+8. pip install pyvirtualdisplay selenium
+
+How to Access Online Catalog
+-----------------------------------------
+1. Make sure you have internet connection
+2. Open browser and go to "http://ec2-52-221-179-112.ap-southeast-1.compute.amazonaws.com/"
